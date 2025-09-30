@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "570870921203",
+    "project_id": "pakebun-app",
+    "storage_bucket": "pakebun-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570870921203:android:f17aad026efd50944b0486",
+        "android_client_info": {
+          "package_name": "com.pakebun.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "570870921203-t57fvuoictj641brdcfrf9bp7fjjtl7a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pakebun.app",
+            "certificate_hash": "a37b5024740ad65cbd5a3794a777a5b68e81c319"
+          }
+        },
+        {
+          "client_id": "570870921203-aau2ia7l1fner977dekmu3jtc3hmujna.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuW1FTmvCCySc9epA1Zho3kJAaOm5sE9E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "570870921203-aau2ia7l1fner977dekmu3jtc3hmujna.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
