@@ -1,6 +1,54 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Model jadwal terstruktur
+class ScheduleItem {
+  final String id;
+  final String jam; // HH:MM
+  final String tipe; // Penyiraman | Pendinginan | Cahaya
+  final String media; // Air | Matahari | '-'
+  final List<bool> hari; // length 7 (Senin..Minggu / label disederhanakan)
+  bool aktif;
+
+  ScheduleItem({
+    required this.id,
+    required this.jam,
+    required this.tipe,
+    required this.media,
+    required List<bool> hari,
+    required this.aktif,
+  }) : hari = List<bool>.from(hari);
+
+  int get _minutes => int.parse(jam.substring(0, 2)) * 60 + int.parse(jam.substring(3));
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'jam': jam,
+        'tipe': tipe,
+        'media': media,
+        'hari': hari,
+        'aktif': aktif,
+      };
+  factory ScheduleItem.fromJson(Map<String, dynamic> j) => ScheduleItem(
+        id: j['id'] as String,
+        jam: j['jam'] as String,
+        tipe: j['tipe'] as String,
+        media: j['media'] as String? ?? '-',
+        hari: (j['hari'] as List<dynamic>).map((e) => e as bool).toList(),
+        aktif: j['aktif'] as bool? ?? true,
+      );
+  ScheduleItem copyWith({String? jam, String? tipe, String? media, List<bool>? hari, bool? aktif}) => ScheduleItem(
+        id: id,
+        jam: jam ?? this.jam,
+        tipe: tipe ?? this.tipe,
+        media: media ?? this.media,
+        hari: hari ?? this.hari,
+        aktif: aktif ?? this.aktif,
+      );
+}
 
 class SettingJadwalScreen extends StatefulWidget {
   final String zona;
@@ -27,10 +75,67 @@ class SettingJadwalScreen extends StatefulWidget {
 }
 
 class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
-  Widget _jadwalCard(Map<String, dynamic> jadwal) {
-    final List<String> hariLabels = List<String>.from(jadwal['hari']);
-    final List<bool> hariAktif = List<bool>.from(jadwal['hariAktif']);
-    final bool status = jadwal['status'] as bool? ?? true;
+  static const List<String> _dayLabels = ['S', 'S', 'R', 'K', 'J', 'S', 'M'];
+
+  final List<ScheduleItem> _jadwal = [];
+  String get _prefsKey => 'jadwal_${widget.zona.toLowerCase().replaceAll(' ', '_')}';
+
+  Future<void> _loadPersisted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_prefsKey);
+      if (raw == null) return;
+      final list = (jsonDecode(raw) as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map((m) => ScheduleItem.fromJson(m))
+          .toList();
+      setState(() {
+        _jadwal
+          ..clear()
+          ..addAll(list);
+        _sort();
+      });
+    } catch (_) {
+      // silent
+    }
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsKey, jsonEncode(_jadwal.map((e) => e.toJson()).toList()));
+  }
+
+  void _sort() => _jadwal.sort((a, b) => a._minutes.compareTo(b._minutes));
+
+  bool _isDuplicate(String jam, String tipe, String media, {String? excludeId}) {
+    return _jadwal.any((s) => s.jam == jam && s.tipe == tipe && s.media == media && s.id != excludeId);
+  }
+
+  void _addSchedule(ScheduleItem item) {
+    setState(() {
+      _jadwal.add(item);
+      _sort();
+    });
+    _persist();
+  }
+
+  void _updateSchedule(int index, ScheduleItem item) {
+    setState(() {
+      _jadwal[index] = item;
+      _sort();
+    });
+    _persist();
+  }
+
+  void _removeSchedule(ScheduleItem item) {
+    setState(() => _jadwal.removeWhere((e) => e.id == item.id));
+    _persist();
+  }
+
+  Widget _jadwalCard(ScheduleItem item, int index) {
+    final status = item.aktif;
+    final hariAktif = item.hari;
+    final jam = item.jam;
 
     return Container(
       margin: EdgeInsets.only(bottom: 14.h),
@@ -55,7 +160,7 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
             children: [
               Expanded(
                 child: Text(
-                  jadwal['jam'] ?? '-',
+                  jam,
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
@@ -63,27 +168,28 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                   ),
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: status
-                      ? const Color(0xFF4CAF50)
-                      : const Color(0xFFD32F2F),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: Text(
-                  status ? 'Aktif' : 'Mati',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
+              GestureDetector(
+                onTap: () => _updateSchedule(index, item.copyWith(aktif: !item.aktif)),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: status ? const Color(0xFF4CAF50) : const Color(0xFFD32F2F),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    status ? 'Aktif' : 'Mati',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
               SizedBox(width: 4.w),
               InkWell(
                 onTap: () {
-                  setState(() => _jadwalList.remove(jadwal));
+                  _removeSchedule(item);
                 },
                 child: Icon(
                   Icons.close,
@@ -94,40 +200,30 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
             ],
           ),
           SizedBox(height: 6.h),
-          _kvRow('Media', jadwal['media'] ?? '-'),
-          _kvRow('Tipe', jadwal['tipe'] ?? '-'),
+          _kvRow('Media', item.media.isEmpty ? '-' : item.media),
+          _kvRow('Tipe', item.tipe),
           SizedBox(height: 8.h),
-          Wrap(
-            spacing: 6.w,
-            children: List.generate(hariLabels.length, (i) {
-              final active = hariAktif[i];
-              return _hariCircle(
-                hariLabels[i],
-                active ? const Color(0xFF35591A) : const Color(0xFFD32F2F),
-              );
-            }),
-          ),
+              Wrap(
+                spacing: 6.w,
+                children: List.generate(_dayLabels.length, (i) {
+                  final active = hariAktif[i];
+                  return _hariCircle(
+                    _dayLabels[i],
+                    active ? const Color(0xFF35591A) : const Color(0xFFD32F2F),
+                  );
+                }),
+              ),
         ],
       ),
     );
   }
-
-  // Struktur data jadwal otomatis
-  final List<Map<String, dynamic>> _jadwalList = [];
-
-  void _addJadwal(Map<String, dynamic> jadwal) {
-    setState(() {
-      _jadwalList.add(jadwal);
-    });
-  }
-
-  void _showTambahJadwalModal(BuildContext context) {
-    final TextEditingController jamController = TextEditingController();
-    String? tipe; // 'Penyiraman', 'Pendinginan', 'Cahaya'
-    String? media; // 'Air', 'Matahari'
-    final List<String> hari = ['S', 'S', 'R', 'K', 'J', 'S', 'M'];
-    final List<bool> hariAktif = List<bool>.filled(7, true);
-    bool status = true;
+  void _openModal({ScheduleItem? existing, int? index}) {
+    final editing = existing != null && index != null;
+    final TextEditingController jamController = TextEditingController(text: existing?.jam ?? '');
+    String? tipe = existing?.tipe;
+    String? media = existing?.media;
+    final List<bool> hariAktif = List<bool>.from(existing?.hari ?? List<bool>.filled(7, true));
+    bool status = existing?.aktif ?? true;
 
     showModalBottomSheet(
       context: context,
@@ -163,7 +259,7 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Tambah Jadwal',
+                          editing ? 'Ubah Jadwal' : 'Tambah Jadwal',
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w700,
@@ -192,13 +288,17 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                       label: 'Pilih Tipe',
                       value: tipe,
                       items: const ['Penyiraman', 'Pendinginan', 'Cahaya'],
-                      onChanged: (v) => setModalState(() => tipe = v),
+                      onChanged: (v) => setModalState(() {
+                        tipe = v;
+                        if (tipe == 'Penyiraman' && media == 'Matahari') media = null;
+                        if (tipe == 'Cahaya' && media == 'Air') media = null;
+                      }),
                     ),
                     SizedBox(height: 12.h),
                     _modalDropdown<String>(
                       label: 'Media',
                       value: media,
-                      items: const ['Air', 'Matahari'],
+                      items: _mediaFor(tipe),
                       onChanged: (v) => setModalState(() => media = v),
                     ),
                     SizedBox(height: 14.h),
@@ -232,7 +332,7 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                           onTap: () =>
                               setModalState(() => hariAktif[i] = !hariAktif[i]),
                           child: _hariCircle(
-                            hari[i],
+                                _dayLabels[i],
                             active
                                 ? const Color(0xFF35591A)
                                 : const Color(0xFFD32F2F),
@@ -264,31 +364,45 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                           padding: EdgeInsets.symmetric(vertical: 12.h),
                         ),
                         onPressed: () {
-                          final jam = jamController.text.trim();
-                          if (jam.isEmpty || !_validTime(jam)) {
+                          final raw = jamController.text.trim();
+                          if (raw.isEmpty || !_validTime(raw)) {
                             _showSnack('Format waktu HH:MM');
                             return;
                           }
-                          if (tipe == null || media == null) {
-                            _showSnack('Lengkapi tipe & media');
+                          final jam = _normalizeTime(raw);
+                          if (tipe == null) {
+                            _showSnack('Pilih tipe');
+                            return;
+                          }
+                          if (media == null) {
+                            _showSnack('Pilih media');
                             return;
                           }
                           if (!hariAktif.contains(true)) {
                             _showSnack('Minimal satu hari aktif');
                             return;
                           }
-                          _addJadwal({
-                            'jam': jam,
-                            'media': media,
-                            'tipe': tipe,
-                            'hari': hari,
-                            'hariAktif': hariAktif,
-                            'status': status,
-                          });
+                          if (_isDuplicate(jam, tipe!, media!, excludeId: existing?.id)) {
+                            _showSnack('Jadwal duplikat');
+                            return;
+                          }
+                          final item = ScheduleItem(
+                            id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+                            jam: jam,
+                            tipe: tipe!,
+                            media: media!,
+                            hari: hariAktif,
+                            aktif: status,
+                          );
+                               if (editing) {
+                                 _updateSchedule(index, item);
+                               } else {
+                            _addSchedule(item);
+                          }
                           Navigator.pop(context);
                         },
                         child: Text(
-                          'Simpan',
+                          editing ? 'Perbarui' : 'Simpan',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -386,11 +500,37 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   }
 
   bool _validTime(String value) {
-    // NOTE: Previously used r'^([01]\\d|2[0-3]):([0-5]\\d)$' which incorrectly
-    // double-escaped \d inside a raw string, causing the pattern to look for a
-    // literal backslash + 'd'. Correct pattern uses single backslash in raw string.
-    final reg = RegExp(r'^([01]\d|2[0-3]):([0-5]\d)$');
+    final reg = RegExp(r'^([0-1]?\d|2[0-3]):?[0-5]\d$'); // allow H:MM / HH:MM / HHMM
     return reg.hasMatch(value.trim());
+  }
+
+  String _normalizeTime(String value) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length < 3) {
+      final h = digits.padLeft(2, '0');
+      return '$h:00';
+    }
+    final hh = digits.substring(0, 2);
+    final mm = digits.substring(2).padRight(2, '0').substring(0, 2);
+    final hNum = int.parse(hh);
+    final mNum = int.parse(mm);
+    final safeH = hNum.clamp(0, 23).toString().padLeft(2, '0');
+    final safeM = mNum.clamp(0, 59).toString().padLeft(2, '0');
+    return '$safeH:$safeM';
+  }
+
+  List<String> _mediaFor(String? tipe) {
+    if (tipe == null) return const ['Air', 'Matahari'];
+    switch (tipe) {
+      case 'Penyiraman':
+        return const ['Air'];
+      case 'Cahaya':
+        return const ['Matahari'];
+      case 'Pendinginan':
+        return const ['Matahari']; // asumsi sementara
+      default:
+        return const ['Air', 'Matahari'];
+    }
   }
 
   void _showSnack(String msg) {
@@ -452,7 +592,8 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   @override
   void initState() {
     super.initState();
-    _aktif = widget.aktif;
+  _aktif = widget.aktif;
+  _loadPersisted();
     _airController = TextEditingController(
       text: widget.lamaSiramAir > 0 ? widget.lamaSiramAir.toString() : '',
     );
@@ -611,7 +752,21 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
               ),
             ),
             SizedBox(height: 10.h),
-            ..._jadwalList.map((jadwal) => _jadwalCard(jadwal)),
+            if (_jadwal.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 6.h),
+                child: Text(
+                  'Belum ada jadwal',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp),
+                ),
+              )
+            else
+              ..._jadwal.asMap().entries.map(
+                (e) => GestureDetector(
+                  onTap: () => _openModal(existing: e.value, index: e.key),
+                  child: _jadwalCard(e.value, e.key),
+                ),
+              ),
             SizedBox(height: 10.h),
             Center(
               child: ElevatedButton.icon(
@@ -624,7 +779,7 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  _showTambahJadwalModal(context);
+                  _openModal();
                 },
                 icon: Icon(Icons.add_circle, color: Colors.white, size: 22.sp),
                 label: Text(
