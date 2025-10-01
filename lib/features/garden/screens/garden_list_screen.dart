@@ -140,38 +140,32 @@ class _GardenListScreenState extends State<GardenListScreen> {
                       ),
                       itemBuilder: (c, i) => _GardenCard(
                         data: _gardens[i],
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => GardenDetailScreen(
+                                garden: _gardens[i],
+                              ),
+                            ),
+                          );
+                        },
                         onEdit: () async {
                           final g = _gardens[i];
-                          // Buka edit screen, passing data yang ada.
                           await Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => EditGardenScreen(
                                 id: g['id']?.toString(),
-                                namaKebun: (g['name'] ?? g['nama'] ?? '')
-                                    .toString(),
-                                alamat: (g['address'] ?? g['alamat'] ?? '')
-                                    .toString(),
-                                pemilik: (g['owner'] ?? g['pemilik'] ?? '')
-                                    .toString(),
-                                telepon: (g['phone'] ?? g['telepon'] ?? '')
-                                    .toString(),
-                                fotoKebun:
-                                    null, // TODO: konversi path ke File jika perlu.
+                                namaKebun: (g['name'] ?? g['nama'] ?? '').toString(),
+                                alamat: (g['address'] ?? g['alamat'] ?? '').toString(),
+                                pemilik: (g['owner'] ?? g['pemilik'] ?? '').toString(),
+                                telepon: (g['phone'] ?? g['telepon'] ?? '').toString(),
+                                fotoKebun: null,
                               ),
                             ),
                           );
-                          // Setelah edit kita reload untuk antisipasi perubahan.
                           _loadGardens();
                         },
                         onDelete: () => _deleteGarden(i),
-                        onDetail: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  GardenDetailScreen(garden: _gardens[i]),
-                            ),
-                          );
-                        },
                       ),
                       separatorBuilder: (_, __) => SizedBox(height: 10.h),
                       itemCount: _gardens.length,
@@ -271,14 +265,14 @@ class _EmptyState extends StatelessWidget {
 
 class _GardenCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onDetail;
   const _GardenCard({
     required this.data,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
-    required this.onDetail,
   });
 
   static Widget placeholder() => Builder(
@@ -337,92 +331,90 @@ class _GardenCard extends StatelessWidget {
       imageWidget = _GardenCard.placeholder();
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8.r),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8.r),
-      ),
-      padding: EdgeInsets.all(8.w),
-      child: Row(
+        child: Padding(
+          padding: EdgeInsets.all(8.w),
+          child: Row(
         // Center so image berada di tengah tinggi card dibanding kolom icon
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          imageWidget,
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF35591A),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  if (address.isNotEmpty)
-                    Text(
-                      address,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: const Color(0xFF35591A),
-                      ),
-                    ),
-                  if (owner.isNotEmpty) SizedBox(height: 4.h),
-                  if (owner.isNotEmpty)
-                    Text(
-                      owner,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: const Color(0xFF35591A),
-                      ),
-                    ),
-                  if (phone.isNotEmpty) SizedBox(height: 2.h),
-                  if (phone.isNotEmpty)
-                    Text(
-                      phone,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: const Color(0xFF35591A),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: 6.w),
-          Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _ActionIcon(
-                color: const Color(0xFF1B6D1B),
-                icon: Icons.edit,
-                onTap: onEdit,
+              imageWidget,
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF35591A),
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      if (address.isNotEmpty)
+                        Text(
+                          address,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: const Color(0xFF35591A),
+                          ),
+                        ),
+                      if (owner.isNotEmpty) SizedBox(height: 4.h),
+                      if (owner.isNotEmpty)
+                        Text(
+                          owner,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: const Color(0xFF35591A),
+                          ),
+                        ),
+                      if (phone.isNotEmpty) SizedBox(height: 2.h),
+                      if (phone.isNotEmpty)
+                        Text(
+                          phone,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: const Color(0xFF35591A),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-              SizedBox(height: 8.h),
-              _ActionIcon(
-                color: const Color(0xFFD20000),
-                icon: Icons.delete,
-                onTap: onDelete,
-              ),
-              SizedBox(height: 8.h),
-              _ActionIcon(
-                color: const Color(0xFFFFC107),
-                icon: Icons.info_outline,
-                onTap: onDetail,
+              SizedBox(width: 6.w),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionIcon(
+                    color: const Color(0xFF1B6D1B),
+                    icon: Icons.edit,
+                    onTap: onEdit,
+                  ),
+                  SizedBox(height: 8.h),
+                  _ActionIcon(
+                    color: const Color(0xFFD20000),
+                    icon: Icons.delete,
+                    onTap: onDelete,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
