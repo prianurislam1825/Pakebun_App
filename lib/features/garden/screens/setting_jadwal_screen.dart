@@ -386,8 +386,11 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   }
 
   bool _validTime(String value) {
-    final reg = RegExp(r'^([01]\\d|2[0-3]):([0-5]\\d)$');
-    return reg.hasMatch(value);
+    // NOTE: Previously used r'^([01]\\d|2[0-3]):([0-5]\\d)$' which incorrectly
+    // double-escaped \d inside a raw string, causing the pattern to look for a
+    // literal backslash + 'd'. Correct pattern uses single backslash in raw string.
+    final reg = RegExp(r'^([01]\d|2[0-3]):([0-5]\d)$');
+    return reg.hasMatch(value.trim());
   }
 
   void _showSnack(String msg) {
