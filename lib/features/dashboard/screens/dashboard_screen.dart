@@ -7,6 +7,7 @@ import 'package:pakebun_app/common/theme/app_theme.dart';
 import 'package:pakebun_app/features/dashboard/widgets/bottom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pakebun_app/common/widgets/page_padding.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 
 class DashboardScreen extends StatefulWidget {
@@ -47,6 +48,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   SizedBox(height: AppTheme.spacingL),
                   _buildPeralatanSection(),
+                  SizedBox(height: AppTheme.spacingL),
+                  _buildMonitoringSection(),
                   SizedBox(height: AppTheme.spacingL),
                   _buildInformasiTanamanSection(),
                   SizedBox(height: AppTheme.spacingXL),
@@ -173,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          childAspectRatio: 2.8,
+          childAspectRatio: 2.6,
           mainAxisSpacing: AppTheme.spacingM,
           crossAxisSpacing: AppTheme.spacingM,
           children: [
@@ -242,6 +245,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonitoringSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Monitoring', style: AppTheme.heading3),
+            GestureDetector(
+              onTap: () {
+                context.go('/monitoring');
+              },
+              child: Text(
+                'Lihat Detail',
+                style: AppTheme.bodySmall.copyWith(
+                  color: AppTheme.textSecondary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: AppTheme.spacingM),
+        _monitoringCard(),
+      ],
+    );
+  }
+
+  Widget _monitoringCard() {
+    return GestureDetector(
+      onTap: () {
+        context.go('/monitoring');
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8BC34A), Color(0xFF689F38)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8BC34A).withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50.w,
+              height: 50.w,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(Icons.sensors, color: Colors.white, size: 28.w),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Monitoring Sensor',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    'Pantau kondisi tanah, cuaca, dan peralatan secara real-time',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18.w),
           ],
         ),
       ),

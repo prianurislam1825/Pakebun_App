@@ -1,4 +1,5 @@
 import 'package:pakebun_app/features/peralatan/screens/detail_tanaman_peralatan.dart';
+import 'package:pakebun_app/features/peralatan/screens/kebutuhan_pupuk_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pakebun_app/common/theme/app_theme.dart';
@@ -87,16 +88,29 @@ class PilihTanamanScreen extends StatelessWidget {
                     title: 'Tomat',
                     subtitle: '(Solanum)',
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => DetailTanamanPeralatanScreen(
-                            namaTanaman: 'Tomat',
-                            latinTanaman: 'Solanum',
-                            gambarBackground:
-                                'assets/image/tomat_background.png',
+                      if (jenisPeralatan == 'Kebutuhan Pupuk') {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const KebutuhanPupukScreen(
+                              namaTanaman: 'Tomat',
+                              latinTanaman: 'Solanum',
+                              gambarBackground:
+                                  'assets/image/tomat_background.png',
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => DetailTanamanPeralatanScreen(
+                              namaTanaman: 'Tomat',
+                              latinTanaman: 'Solanum',
+                              gambarBackground:
+                                  'assets/image/tomat_background.png',
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                   _TanamanItem(

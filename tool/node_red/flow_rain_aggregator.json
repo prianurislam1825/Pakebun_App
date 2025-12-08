@@ -1,0 +1,128 @@
+[
+    {
+        "id": "e1f0a1c3b2a4d5e6",
+        "type": "tab",
+        "label": "Pakebun Rain Aggregator",
+        "disabled": false,
+        "info": "Subscribe aws/+/data, compute rain_last_day, rain_last_week, rain_last_month, rain_rate_1h, merge back to aws/<id>/data (retained)."
+    },
+    {
+        "id": "bkr1",
+        "type": "mqtt-broker",
+        "name": "pentarium",
+        "broker": "pentarium.id",
+        "port": "1883",
+        "clientid": "pakebun-nodered-agg",
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closePayload": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": ""
+    },
+    {
+        "id": "in1",
+        "type": "mqtt in",
+        "z": "e1f0a1c3b2a4d5e6",
+        "name": "aws/+/data",
+        "topic": "aws/+/data",
+        "qos": "1",
+        "datatype": "auto",
+        "broker": "bkr1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "x": 140,
+        "y": 120,
+        "wires": [
+            [
+                "fn_gate"
+            ]
+        ]
+    },
+    {
+        "id": "fn_gate",
+        "type": "function",
+        "z": "e1f0a1c3b2a4d5e6",
+        "name": "parse + gate (_agg)",
+        "func": "// Ignore messages produced by this flow (avoid loops)\nlet obj;\ntry { obj = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : msg.payload; } catch (e) { return null; }\nif (obj && obj._agg && obj._agg.source === 'pakebun-nodered') { return null; }\n// extract deviceId from topic aws/<id>/data\nconst parts = (msg.topic || '').split('/');\nconst deviceId = parts.length >= 3 ? parts[1] : undefined;\nif (!deviceId) { return null; }\nmsg.deviceId = deviceId;\nmsg.data = obj;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 120,
+        "wires": [
+            [
+                "fn_compute"
+            ]
+        ]
+    },
+    {
+        "id": "fn_compute",
+        "type": "function",
+        "z": "e1f0a1c3b2a4d5e6",
+        "name": "compute windows",
+        "func": "// Perangkat mengirim kumulatif hujan (mm) yang naik seiring waktu (reset bisa terjadi).\n// Hitung jendela: 1 jam, 1 hari, 1 minggu, 1 bulan kalender.\n// Catatan: Ada perangkat yang salah isi field (mis. uptime detik).\n// Untuk menghindari salah hitung, kita filter delta yang tidak masuk akal (mm/detik terlalu besar).\n\nconst dev = msg.deviceId;\nconst now = Date.now();\nconst data = msg.data || {};\nconst aws = (data.aws && typeof data.aws === 'object') ? data.aws : {};\nconst ts = (typeof data.ts === 'number') ? data.ts*1000 : now;\nlet cum = Number(aws.rain);\nif (!isFinite(cum)) cum = 0;\n\n// Ambang wajar curah hujan maksimum (mm per detik).\n// 0.2 mm/s = 12 mm/menit, badai lebat. Delta di atas ini akan diabaikan.\nconst MAX_MM_PER_SEC = 0.2;\n\n// Simpan sampel kumulatif per perangkat. Struktur: [[tsMs, cum], ...].\nlet state = flow.get('rain:'+dev) || { samples: [] };\nstate.samples.push([ts, cum]);\n\n// Pastikan urut dan bersihkan data lama (~400 hari).\nstate.samples.sort((a,b) => a[0]-b[0]);\nconst cutoffStore = ts - 400*24*60*60*1000;\nwhile (state.samples.length && state.samples[0][0] < cutoffStore) { state.samples.shift(); }\n\nfunction sumDeltaWithinWindow(samples, cutoff) {\n  if (!samples.length) return 0;\n  // Cari indeks sample terakhir sebelum cutoff (baseline).\n  let startIdx = -1;\n  for (let i = samples.length - 1; i >= 0; i--) {\n    if (samples[i][0] < cutoff) { startIdx = i; break; }\n  }\n  let prev = (startIdx >= 0) ? samples[startIdx] : samples[0];\n  let sum = 0;\n  for (let i = (startIdx >= 0 ? startIdx + 1 : 1); i < samples.length; i++) {\n    const cur = samples[i];\n    if (cur[0] < cutoff) continue;\n    const inc = cur[1] - prev[1];\n    const dt = Math.max(1, (cur[0] - prev[0]) / 1000); // detik\n    if (inc > 0) {\n      const rate = inc / dt; // mm/detik jika cum dalam mm\n      if (rate <= MAX_MM_PER_SEC) {\n        sum += inc;\n      } else {\n        // delta tidak wajar (kemungkinan bukan kumulatif hujan) -> abaikan\n      }\n    }\n    prev = cur;\n  }\n  return sum;\n}\n\nfunction subtractMonthsTs(ts, n) {\n  const d = new Date(ts);\n  let y = d.getFullYear();\n  let m = d.getMonth();\n  const day = d.getDate();\n  const hh = d.getHours(), mm = d.getMinutes(), ss = d.getSeconds(), ms = d.getMilliseconds();\n  m -= n;\n  while (m < 0) { y -= 1; m += 12; }\n  const lastDay = new Date(y, m + 1, 0).getDate();\n  const safeDay = Math.min(day, lastDay);\n  return new Date(y, m, safeDay, hh, mm, ss, ms).getTime();\n}\n\nconst cutoff1h = ts - 60*60*1000;\nconst cutoff1d = ts - 24*60*60*1000;\nconst cutoff1w = ts - 7*24*60*60*1000;\nconst cutoff1m = subtractMonthsTs(ts, 1);\n\nconst last_hour = sumDeltaWithinWindow(state.samples, cutoff1h);\nconst last_day = sumDeltaWithinWindow(state.samples, cutoff1d);\nconst last_week = sumDeltaWithinWindow(state.samples, cutoff1w);\nconst last_month = sumDeltaWithinWindow(state.samples, cutoff1m);\n\nflow.set('rain:'+dev, state);\n\nmsg.metrics = {\n  rain_rate_1h: Number(last_hour.toFixed(3)),\n  rain_last_day: Number(last_day.toFixed(3)),\n  rain_last_week: Number(last_week.toFixed(3)),\n  rain_last_month: Number(last_month.toFixed(3)),\n  updated_at: new Date(ts).toISOString()\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 580,
+        "y": 120,
+        "wires": [
+            [
+                "fn_enrich"
+            ]
+        ]
+    },
+    {
+        "id": "fn_enrich",
+        "type": "function",
+        "z": "e1f0a1c3b2a4d5e6",
+        "name": "enrich + stringify",
+        "func": "const obj = msg.data;\nobj.aws = obj.aws || {};\nobj.aws.rain_last_day = msg.metrics.rain_last_day;\nobj.aws.rain_last_week = msg.metrics.rain_last_week;\nobj.aws.rain_last_month = msg.metrics.rain_last_month;\nobj.aws.rain_rate_1h = msg.metrics.rain_rate_1h;\nobj._agg = { source: 'pakebun-nodered', v: 2 };\nmsg.payload = JSON.stringify(obj);\nmsg.topic = `aws/${msg.deviceId}/data`;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 120,
+        "wires": [
+            [
+                "out1"
+            ]
+        ]
+    },
+    {
+        "id": "out1",
+        "type": "mqtt out",
+        "z": "e1f0a1c3b2a4d5e6",
+        "name": "aws/<id>/data (retained)",
+        "topic": "",
+        "qos": "1",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "bkr1",
+        "x": 1070,
+        "y": 120,
+        "wires": []
+    }
+]

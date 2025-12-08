@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  nodered:
+    image: nodered/node-red:3.1
+    container_name: pakebun-nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"   # Node-RED editor/UI
+    environment:
+      - TZ=Asia/Jakarta
+      - FLOW_FILE=flows.json  # Force Node-RED to use /data/flows.json for easy deployment
+      # Set SAFE MODE to true if a faulty flow prevents startup
+      - NODE_RED_ENABLE_SAFE_MODE=false
+    volumes:
+      - ./data:/data   # Persist flows, creds, settings, and logs
+
+    # Optional healthcheck (Node-RED exposes /)
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:1880/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  # If you want to start with our flow preloaded, copy the JSON to ./data/flows.json
+  # before the first run. Example on Linux:
+    #   cp flow_rain_aggregator.json data/flows.json
+    # On Windows, you can copy via Explorer.
+
+  # Optional: To protect the editor, set adminAuth in /data/settings.js after first run.
+  # Docs: https://nodered.org/docs/user-guide/runtime/securing-node-red

@@ -22,32 +22,39 @@ class ScheduleItem {
     required this.aktif,
   }) : hari = List<bool>.from(hari);
 
-  int get _minutes => int.parse(jam.substring(0, 2)) * 60 + int.parse(jam.substring(3));
+  int get _minutes =>
+      int.parse(jam.substring(0, 2)) * 60 + int.parse(jam.substring(3));
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'jam': jam,
-        'tipe': tipe,
-        'media': media,
-        'hari': hari,
-        'aktif': aktif,
-      };
+    'id': id,
+    'jam': jam,
+    'tipe': tipe,
+    'media': media,
+    'hari': hari,
+    'aktif': aktif,
+  };
   factory ScheduleItem.fromJson(Map<String, dynamic> j) => ScheduleItem(
-        id: j['id'] as String,
-        jam: j['jam'] as String,
-        tipe: j['tipe'] as String,
-        media: j['media'] as String? ?? '-',
-        hari: (j['hari'] as List<dynamic>).map((e) => e as bool).toList(),
-        aktif: j['aktif'] as bool? ?? true,
-      );
-  ScheduleItem copyWith({String? jam, String? tipe, String? media, List<bool>? hari, bool? aktif}) => ScheduleItem(
-        id: id,
-        jam: jam ?? this.jam,
-        tipe: tipe ?? this.tipe,
-        media: media ?? this.media,
-        hari: hari ?? this.hari,
-        aktif: aktif ?? this.aktif,
-      );
+    id: j['id'] as String,
+    jam: j['jam'] as String,
+    tipe: j['tipe'] as String,
+    media: j['media'] as String? ?? '-',
+    hari: (j['hari'] as List<dynamic>).map((e) => e as bool).toList(),
+    aktif: j['aktif'] as bool? ?? true,
+  );
+  ScheduleItem copyWith({
+    String? jam,
+    String? tipe,
+    String? media,
+    List<bool>? hari,
+    bool? aktif,
+  }) => ScheduleItem(
+    id: id,
+    jam: jam ?? this.jam,
+    tipe: tipe ?? this.tipe,
+    media: media ?? this.media,
+    hari: hari ?? this.hari,
+    aktif: aktif ?? this.aktif,
+  );
 }
 
 class SettingJadwalScreen extends StatefulWidget {
@@ -78,7 +85,8 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   static const List<String> _dayLabels = ['S', 'S', 'R', 'K', 'J', 'S', 'M'];
 
   final List<ScheduleItem> _jadwal = [];
-  String get _prefsKey => 'jadwal_${widget.zona.toLowerCase().replaceAll(' ', '_')}';
+  String get _prefsKey =>
+      'jadwal_${widget.zona.toLowerCase().replaceAll(' ', '_')}';
 
   Future<void> _loadPersisted() async {
     try {
@@ -102,13 +110,27 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, jsonEncode(_jadwal.map((e) => e.toJson()).toList()));
+    await prefs.setString(
+      _prefsKey,
+      jsonEncode(_jadwal.map((e) => e.toJson()).toList()),
+    );
   }
 
   void _sort() => _jadwal.sort((a, b) => a._minutes.compareTo(b._minutes));
 
-  bool _isDuplicate(String jam, String tipe, String media, {String? excludeId}) {
-    return _jadwal.any((s) => s.jam == jam && s.tipe == tipe && s.media == media && s.id != excludeId);
+  bool _isDuplicate(
+    String jam,
+    String tipe,
+    String media, {
+    String? excludeId,
+  }) {
+    return _jadwal.any(
+      (s) =>
+          s.jam == jam &&
+          s.tipe == tipe &&
+          s.media == media &&
+          s.id != excludeId,
+    );
   }
 
   void _addSchedule(ScheduleItem item) {
@@ -169,11 +191,17 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => _updateSchedule(index, item.copyWith(aktif: !item.aktif)),
+                onTap: () =>
+                    _updateSchedule(index, item.copyWith(aktif: !item.aktif)),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: status ? const Color(0xFF4CAF50) : const Color(0xFFD32F2F),
+                    color: status
+                        ? const Color(0xFF4CAF50)
+                        : const Color(0xFFD32F2F),
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Text(
@@ -203,26 +231,31 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
           _kvRow('Media', item.media.isEmpty ? '-' : item.media),
           _kvRow('Tipe', item.tipe),
           SizedBox(height: 8.h),
-              Wrap(
-                spacing: 6.w,
-                children: List.generate(_dayLabels.length, (i) {
-                  final active = hariAktif[i];
-                  return _hariCircle(
-                    _dayLabels[i],
-                    active ? const Color(0xFF35591A) : const Color(0xFFD32F2F),
-                  );
-                }),
-              ),
+          Wrap(
+            spacing: 6.w,
+            children: List.generate(_dayLabels.length, (i) {
+              final active = hariAktif[i];
+              return _hariCircle(
+                _dayLabels[i],
+                active ? const Color(0xFF35591A) : const Color(0xFFD32F2F),
+              );
+            }),
+          ),
         ],
       ),
     );
   }
+
   void _openModal({ScheduleItem? existing, int? index}) {
     final editing = existing != null && index != null;
-    final TextEditingController jamController = TextEditingController(text: existing?.jam ?? '');
+    final TextEditingController jamController = TextEditingController(
+      text: existing?.jam ?? '',
+    );
     String? tipe = existing?.tipe;
     String? media = existing?.media;
-    final List<bool> hariAktif = List<bool>.from(existing?.hari ?? List<bool>.filled(7, true));
+    final List<bool> hariAktif = List<bool>.from(
+      existing?.hari ?? List<bool>.filled(7, true),
+    );
     bool status = existing?.aktif ?? true;
 
     showModalBottomSheet(
@@ -290,7 +323,8 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                       items: const ['Penyiraman', 'Pendinginan', 'Cahaya'],
                       onChanged: (v) => setModalState(() {
                         tipe = v;
-                        if (tipe == 'Penyiraman' && media == 'Matahari') media = null;
+                        if (tipe == 'Penyiraman' && media == 'Matahari')
+                          media = null;
                         if (tipe == 'Cahaya' && media == 'Air') media = null;
                       }),
                     ),
@@ -332,7 +366,7 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                           onTap: () =>
                               setModalState(() => hariAktif[i] = !hariAktif[i]),
                           child: _hariCircle(
-                                _dayLabels[i],
+                            _dayLabels[i],
                             active
                                 ? const Color(0xFF35591A)
                                 : const Color(0xFFD32F2F),
@@ -382,21 +416,29 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                             _showSnack('Minimal satu hari aktif');
                             return;
                           }
-                          if (_isDuplicate(jam, tipe!, media!, excludeId: existing?.id)) {
+                          if (_isDuplicate(
+                            jam,
+                            tipe!,
+                            media!,
+                            excludeId: existing?.id,
+                          )) {
                             _showSnack('Jadwal duplikat');
                             return;
                           }
                           final item = ScheduleItem(
-                            id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+                            id:
+                                existing?.id ??
+                                DateTime.now().microsecondsSinceEpoch
+                                    .toString(),
                             jam: jam,
                             tipe: tipe!,
                             media: media!,
                             hari: hariAktif,
                             aktif: status,
                           );
-                               if (editing) {
-                                 _updateSchedule(index, item);
-                               } else {
+                          if (editing) {
+                            _updateSchedule(index, item);
+                          } else {
                             _addSchedule(item);
                           }
                           Navigator.pop(context);
@@ -500,7 +542,9 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   }
 
   bool _validTime(String value) {
-    final reg = RegExp(r'^([0-1]?\d|2[0-3]):?[0-5]\d$'); // allow H:MM / HH:MM / HHMM
+    final reg = RegExp(
+      r'^([0-1]?\d|2[0-3]):?[0-5]\d$',
+    ); // allow H:MM / HH:MM / HHMM
     return reg.hasMatch(value.trim());
   }
 
@@ -592,8 +636,8 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
   @override
   void initState() {
     super.initState();
-  _aktif = widget.aktif;
-  _loadPersisted();
+    _aktif = widget.aktif;
+    _loadPersisted();
     _airController = TextEditingController(
       text: widget.lamaSiramAir > 0 ? widget.lamaSiramAir.toString() : '',
     );
@@ -757,7 +801,10 @@ class _SettingJadwalScreenState extends State<SettingJadwalScreen> {
                 padding: EdgeInsets.symmetric(vertical: 6.h),
                 child: Text(
                   'Belum ada jadwal',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13.sp,
+                  ),
                 ),
               )
             else

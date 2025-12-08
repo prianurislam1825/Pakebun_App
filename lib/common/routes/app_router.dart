@@ -11,6 +11,13 @@ import 'package:pakebun_app/features/profile/screens/profile_screen.dart';
 import 'package:pakebun_app/features/auth/screens/reset_sandi_screen.dart';
 import 'package:pakebun_app/features/auth/screens/register_screen.dart';
 
+// Monitoring screens
+import 'package:pakebun_app/features/monitoring/screens/monitoring_dashboard_screen.dart';
+import 'package:pakebun_app/features/monitoring/screens/soil_monitoring_screen.dart';
+import 'package:pakebun_app/features/monitoring/screens/weather_monitoring_screen.dart';
+import 'package:pakebun_app/features/monitoring/screens/power_monitoring_screen.dart';
+import 'package:pakebun_app/features/monitoring/screens/equipment_control_screen.dart';
+
 final GoRouter appRouter = GoRouter(
   // Kembalikan ke splash; splash sekarang akan auto redirect (auth / onboarding logic).
   initialLocation: '/splash',
@@ -40,6 +47,27 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/profile',
       builder: (context, state) => const ProfileScreen(),
+    ),
+    // Monitoring routes
+    GoRoute(
+      path: '/monitoring',
+      builder: (context, state) => const MonitoringDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/monitoring/soil',
+      builder: (context, state) => const SoilMonitoringScreen(),
+    ),
+    GoRoute(
+      path: '/monitoring/weather',
+      builder: (context, state) => const WeatherMonitoringScreen(),
+    ),
+    GoRoute(
+      path: '/monitoring/power',
+      builder: (context, state) => const PowerMonitoringScreen(),
+    ),
+    GoRoute(
+      path: '/monitoring/equipment',
+      builder: (context, state) => const EquipmentControlScreen(),
     ),
   ],
 );

@@ -143,9 +143,8 @@ class _GardenListScreenState extends State<GardenListScreen> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => GardenDetailScreen(
-                                garden: _gardens[i],
-                              ),
+                              builder: (_) =>
+                                  GardenDetailScreen(garden: _gardens[i]),
                             ),
                           );
                         },
@@ -155,10 +154,14 @@ class _GardenListScreenState extends State<GardenListScreen> {
                             MaterialPageRoute(
                               builder: (_) => EditGardenScreen(
                                 id: g['id']?.toString(),
-                                namaKebun: (g['name'] ?? g['nama'] ?? '').toString(),
-                                alamat: (g['address'] ?? g['alamat'] ?? '').toString(),
-                                pemilik: (g['owner'] ?? g['pemilik'] ?? '').toString(),
-                                telepon: (g['phone'] ?? g['telepon'] ?? '').toString(),
+                                namaKebun: (g['name'] ?? g['nama'] ?? '')
+                                    .toString(),
+                                alamat: (g['address'] ?? g['alamat'] ?? '')
+                                    .toString(),
+                                pemilik: (g['owner'] ?? g['pemilik'] ?? '')
+                                    .toString(),
+                                telepon: (g['phone'] ?? g['telepon'] ?? '')
+                                    .toString(),
                                 fotoKebun: null,
                               ),
                             ),
@@ -340,7 +343,7 @@ class _GardenCard extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.all(8.w),
           child: Row(
-        // Center so image berada di tengah tinggi card dibanding kolom icon
+            // Center so image berada di tengah tinggi card dibanding kolom icon
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               imageWidget,
