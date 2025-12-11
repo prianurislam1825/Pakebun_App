@@ -28,7 +28,13 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
   @override
   void initState() {
     super.initState();
-    _soilMqtt.connect().catchError((_) {});
+    _soilMqtt
+        .connect()
+        .then((_) {
+          // Request last data from InfluxDB after connected
+          _soilMqtt.requestLastData();
+        })
+        .catchError((_) {});
     _soilMqtt.soil.addListener(_onSoilData);
   }
 
@@ -107,72 +113,76 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
         ),
       ),
       body: PagePadding(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Connection status
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12.w),
-              margin: EdgeInsets.only(top: 16.h),
-              decoration: BoxDecoration(
-                color: isConnected ? Colors.green.shade50 : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(
-                  color: isConnected ? Colors.green : Colors.red,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isConnected ? Icons.wifi : Icons.wifi_off,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Connection status
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12.w),
+                margin: EdgeInsets.only(top: 16.h),
+                decoration: BoxDecoration(
+                  color: isConnected
+                      ? Colors.green.shade50
+                      : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
                     color: isConnected ? Colors.green : Colors.red,
-                    size: 20.w,
+                    width: 1,
                   ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      isConnected ? 'Terhubung ke Sensor' : 'Tidak Terhubung',
-                      style: TextStyle(
-                        color: isConnected
-                            ? Colors.green.shade800
-                            : Colors.red.shade800,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.sp,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isConnected ? Icons.wifi : Icons.wifi_off,
+                      color: isConnected ? Colors.green : Colors.red,
+                      size: 20.w,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        isConnected ? 'Terhubung ke Sensor' : 'Tidak Terhubung',
+                        style: TextStyle(
+                          color: isConnected
+                              ? Colors.green.shade800
+                              : Colors.red.shade800,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            if (soil?.receivedAt != null)
-              Padding(
-                padding: EdgeInsets.only(top: 8.h, bottom: 16.h),
-                child: Text(
-                  'Update: ${_formatDateTime(soil?.receivedAt)}',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey.shade600,
-                  ),
+                  ],
                 ),
-              )
-            else
-              SizedBox(height: 24.h),
-
-            // Soil metrics section
-            Text(
-              'Parameter Tanah',
-              style: AppTheme.heading2.copyWith(
-                color: const Color(0xFF2B4C00),
-                fontWeight: FontWeight.w700,
               ),
-            ),
-            SizedBox(height: 16.h),
+              if (soil?.receivedAt != null)
+                Padding(
+                  padding: EdgeInsets.only(top: 8.h, bottom: 16.h),
+                  child: Text(
+                    'Update: ${_formatDateTime(soil?.receivedAt)}',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                )
+              else
+                SizedBox(height: 24.h),
 
-            // Soil cards grid
-            Expanded(
-              child: GridView.count(
+              // Soil metrics section
+              Text(
+                'Parameter Tanah',
+                style: AppTheme.heading2.copyWith(
+                  color: const Color(0xFF2B4C00),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 16.h),
+
+              // Soil cards grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
@@ -200,39 +210,36 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
                     'Conductivity',
                     'assets/monitoring/status_tanah.svg',
                     soil?.cond,
-                    suffix: ' µS/cm',
+                    suffix: ' µS',
                   ),
                   _buildNutrientCard(
                     'Nitrogen (N)',
                     'assets/monitoring/npk.svg',
                     soil?.n,
-                    suffix: ' mg/kg',
+                    suffix: ' mg',
                   ),
                   _buildNutrientCard(
                     'Fosfor (P)',
                     'assets/monitoring/npk.svg',
                     soil?.p,
-                    suffix: ' mg/kg',
+                    suffix: ' mg',
                   ),
                 ],
               ),
-            ),
 
-            // Potassium full width card
-            _buildNutrientCardFull(
-              'Kalium (K)',
-              'assets/monitoring/npk.svg',
-              soil?.k,
-              suffix: ' mg/kg',
-            ),
+              SizedBox(height: 12.h),
 
-            SizedBox(height: 16.h),
+              // Potassium full width card
+              _buildNutrientCardFull(
+                'Kalium (K)',
+                'assets/monitoring/npk.svg',
+                soil?.k,
+                suffix: ' mg',
+              ),
 
-            // Control buttons
-            _buildControlButtons(),
-
-            SizedBox(height: 24.h),
-          ],
+              SizedBox(height: 24.h),
+            ],
+          ),
         ),
       ),
     );
@@ -271,25 +278,37 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Nama parameter di atas
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const Spacer(),
+          // Gambar dan nilai di bawah
           Row(
             children: [
               Container(
-                width: 32.w,
-                height: 32.w,
-                padding: EdgeInsets.all(6.w),
+                width: 40.w,
+                height: 40.w,
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: SmartIcon(
                   assetPath: icon,
-                  size: 20.w,
+                  size: 24.w,
                   tintForVector: Colors.white,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: colors.$1,
                   borderRadius: BorderRadius.circular(12.r),
@@ -298,22 +317,12 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
                   valueText,
                   style: TextStyle(
                     color: colors.$2,
-                    fontSize: 12.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
           ),
         ],
       ),
@@ -351,25 +360,37 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Nama parameter di atas
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const Spacer(),
+          // Gambar dan nilai di bawah
           Row(
             children: [
               Container(
-                width: 32.w,
-                height: 32.w,
-                padding: EdgeInsets.all(6.w),
+                width: 40.w,
+                height: 40.w,
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: SmartIcon(
                   assetPath: icon,
-                  size: 20.w,
+                  size: 24.w,
                   tintForVector: Colors.white,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12.r),
@@ -378,22 +399,12 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
                   valueText,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
           ),
         ],
       ),
@@ -472,96 +483,6 @@ class _SoilMonitoringScreenState extends State<SoilMonitoringScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildControlButtons() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Kontrol Penyiraman',
-          style: AppTheme.heading3.copyWith(
-            color: const Color(0xFF2B4C00),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                onPressed: () => _sendPumpCommand('water', 'on', 60),
-                icon: const Icon(Icons.water_drop, size: 18),
-                label: Text(
-                  'Siram 1 Menit',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                onPressed: () => _sendPumpCommand('fertilizer', 'on', 30),
-                icon: const Icon(Icons.grass, size: 18),
-                label: Text(
-                  'Pupuk 30s',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _sendPumpCommand(
-    String type,
-    String action,
-    int duration,
-  ) async {
-    final success = await _soilMqtt.publishPumpCommand(
-      type: type,
-      action: action,
-      duration: duration,
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Perintah $type terkirim (${duration}s)'
-              : 'Gagal mengirim perintah $type',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
       ),
     );
   }

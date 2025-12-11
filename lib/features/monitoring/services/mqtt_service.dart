@@ -188,4 +188,44 @@ class MqttService {
     _client?.disconnect();
     connected.value = false;
   }
+
+  // Request last BME280 data from InfluxDB via Node-RED
+  Future<void> requestLastBmeData(String deviceId) async {
+    if (_client == null ||
+        _client!.connectionStatus?.state != MqttConnectionState.connected) {
+      debugPrint('[MQTT] Cannot request BME: not connected');
+      return;
+    }
+
+    final topic = 'airis/$deviceId/request/bme';
+    final builder = MqttClientPayloadBuilder();
+    builder.addString('{}');
+
+    try {
+      _client!.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+      debugPrint('[MQTT] 📤 Request last BME data sent to: $topic');
+    } catch (e) {
+      debugPrint('[MQTT] ❌ Failed to send BME request: $e');
+    }
+  }
+
+  // Request last AWS weather data from InfluxDB via Node-RED
+  Future<void> requestLastAwsData(String deviceId) async {
+    if (_client == null ||
+        _client!.connectionStatus?.state != MqttConnectionState.connected) {
+      debugPrint('[MQTT] Cannot request AWS: not connected');
+      return;
+    }
+
+    final topic = 'airis/$deviceId/request/aws';
+    final builder = MqttClientPayloadBuilder();
+    builder.addString('{}');
+
+    try {
+      _client!.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+      debugPrint('[MQTT] 📤 Request last AWS data sent to: $topic');
+    } catch (e) {
+      debugPrint('[MQTT] ❌ Failed to send AWS request: $e');
+    }
+  }
 }

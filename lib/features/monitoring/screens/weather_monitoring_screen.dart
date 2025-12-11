@@ -22,11 +22,19 @@ class WeatherMonitoringScreen extends StatefulWidget {
 
 class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
   final MqttService _mqtt = MqttService(broker: 'pentarium.id', port: 1883);
+  static const String deviceId = 'F0F06D9FE8';
 
   @override
   void initState() {
     super.initState();
-    _mqtt.connect().catchError((_) {});
+    _mqtt
+        .connect()
+        .then((_) {
+          // Request last data from InfluxDB after connected
+          _mqtt.requestLastBmeData(deviceId);
+          _mqtt.requestLastAwsData(deviceId);
+        })
+        .catchError((_) {});
     _mqtt.env.addListener(_onEnvData);
     _mqtt.aws.addListener(_onAwsData);
   }
@@ -332,7 +340,7 @@ class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
-                childAspectRatio: 1.0,
+                childAspectRatio: 1.1,
                 children: [
                   _buildRainCard(
                     'Curah 1 Minggu',
@@ -350,7 +358,7 @@ class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
                     'Intensitas 1 Jam',
                     'assets/monitoring/curah_hujan.svg',
                     aws?.rainRate1h ?? aws?.rainRate10m,
-                    suffix: ' mm/h',
+                    suffix: ' mm',
                   ),
                   _buildRainCard(
                     'Curah 1 Bulan',
@@ -410,25 +418,37 @@ class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Nama parameter di atas
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const Spacer(),
+          // Gambar dan nilai di bawah
           Row(
             children: [
               Container(
-                width: 32.w,
-                height: 32.w,
-                padding: EdgeInsets.all(6.w),
+                width: 40.w,
+                height: 40.w,
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: SmartIcon(
                   assetPath: icon,
-                  size: 20.w,
+                  size: 24.w,
                   tintForVector: Colors.white,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: colors.$1,
                   borderRadius: BorderRadius.circular(12.r),
@@ -437,22 +457,12 @@ class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
                   valueText,
                   style: TextStyle(
                     color: colors.$2,
-                    fontSize: 12.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
           ),
         ],
       ),
@@ -558,50 +568,55 @@ class _WeatherMonitoringScreenState extends State<WeatherMonitoringScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Nama parameter di atas
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 8.h),
+          // Gambar dan nilai di bawah
           Row(
             children: [
               Container(
-                width: 32.w,
-                height: 32.w,
-                padding: EdgeInsets.all(6.w),
+                width: 36.w,
+                height: 36.w,
+                padding: EdgeInsets.all(7.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: SmartIcon(
                   assetPath: icon,
-                  size: 20.w,
+                  size: 22.w,
                   tintForVector: Colors.white,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Text(
                   valueText,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12.sp,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
           ),
         ],
       ),

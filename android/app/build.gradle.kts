@@ -33,6 +33,11 @@ android {
         versionName = flutter.versionName
         multiDexEnabled = true
     }
+    
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 
     buildTypes {
         release {

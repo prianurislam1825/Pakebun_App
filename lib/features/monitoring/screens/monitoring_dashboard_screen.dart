@@ -45,49 +45,39 @@ class MonitoringDashboardScreen extends StatelessWidget {
                 color: AppTheme.textSecondary,
               ),
             ),
-            SizedBox(height: 32.h),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16.w,
-                mainAxisSpacing: 16.h,
-                childAspectRatio: 1.25,
-                children: [
-                  _buildMonitoringCard(
-                    context,
-                    title: 'Monitoring\nTanah',
-                    icon: 'assets/monitoring/kelembapan_tanah.svg',
-                    description: 'pH, EC, NPK,\nKelembapan & Suhu',
-                    color: const Color(0xFF8BC34A),
-                    route: '/monitoring/soil',
+            SizedBox(height: 24.h),
+            Row(
+              children: [
+                Expanded(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: _buildMonitoringCard(
+                      context,
+                      title: 'Monitoring\nTanah',
+                      icon: 'assets/monitoring/kelembapan_tanah.svg',
+                      description: 'pH, EC, NPK, Kelembapan & Suhu',
+                      color: const Color(0xFF8BC34A),
+                      route: '/monitoring/soil',
+                    ),
                   ),
-                  _buildMonitoringCard(
-                    context,
-                    title: 'Cuaca &\nLingkungan',
-                    icon: 'assets/monitoring/suhu_udara.svg',
-                    description: 'Suhu, Kelembapan,\nHujan, Angin & UV',
-                    color: const Color(0xFF2196F3),
-                    route: '/monitoring/weather',
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: _buildMonitoringCard(
+                      context,
+                      title: 'Cuaca &\nLingkungan',
+                      icon: 'assets/monitoring/suhu_udara.svg',
+                      description: 'Suhu, Kelembapan, Hujan, Angin & UV',
+                      color: const Color(0xFF2196F3),
+                      route: '/monitoring/weather',
+                    ),
                   ),
-                  _buildMonitoringCard(
-                    context,
-                    title: 'Monitoring\nDaya',
-                    icon: 'assets/monitoring/baterai.svg',
-                    description: 'Baterai &\nPanel Surya',
-                    color: const Color(0xFFFF9800),
-                    route: '/monitoring/power',
-                  ),
-                  _buildMonitoringCard(
-                    context,
-                    title: 'Kontrol\nPeralatan',
-                    icon: 'assets/monitoring/penyiraman.svg',
-                    description: 'Penyiraman, Cahaya\n& Pendinginan',
-                    color: const Color(0xFF9C27B0),
-                    route: '/monitoring/equipment',
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const Spacer(),
           ],
         ),
       ),

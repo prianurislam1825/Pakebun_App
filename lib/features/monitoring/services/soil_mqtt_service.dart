@@ -150,6 +150,32 @@ class SoilMqttService {
     connected.value = false;
   }
 
+  // Request last soil data from InfluxDB via Node-RED
+  Future<void> requestLastData() async {
+    if (_client == null ||
+        _client!.connectionStatus?.state != MqttConnectionState.connected) {
+      debugPrint('[SoilMQTT] Cannot request: not connected');
+      return;
+    }
+
+    final id = deviceId ?? '';
+    if (id.isEmpty) {
+      debugPrint('[SoilMQTT] Cannot request: deviceId not set');
+      return;
+    }
+
+    final topic = 'airis/$id/request/soil';
+    final builder = MqttClientPayloadBuilder();
+    builder.addString('{}'); // Empty JSON payload
+
+    try {
+      _client!.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+      debugPrint('[SoilMQTT] 📤 Request last data sent to: $topic');
+    } catch (e) {
+      debugPrint('[SoilMQTT] ❌ Failed to send request: $e');
+    }
+  }
+
   // Publish pump command to device
   // Topic: airis/api/<deviceId>/pump/POST
   // Payload example: {"type":"water","action":"on","duration":60}
