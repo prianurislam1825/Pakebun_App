@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pakebun_app/common/theme/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pakebun_app/core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,22 +18,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
   Future<void> _register() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
+
     if (name.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan kata sandi wajib diisi!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Semua field wajib diisi!')));
       return;
     }
+
     if (password != confirmPassword) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,18 +45,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_name', name);
-    await prefs.setString('user_email', email);
-    await prefs.setString('user_password', password);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registrasi berhasil! Silakan login.')),
-    );
-    Future.delayed(const Duration(milliseconds: 500), () {
+
+    if (password.length < 6) {
       if (!mounted) return;
-      context.go('/login');
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password minimal 6 karakter!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.signUp(
+        email: email,
+        password: password,
+        fullName: name,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Registrasi berhasil! Silakan cek email untuk verifikasi.',
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
+        ),
+      );
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        context.go('/login');
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registrasi gagal: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -173,14 +208,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         padding: EdgeInsets.symmetric(vertical: 10.h),
                       ),
-                      onPressed: _register,
-                      child: Text(
-                        'Daftar',
-                        style: AppTheme.heading3.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      onPressed: _isLoading ? null : _register,
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20.h,
+                              width: 20.h,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Daftar',
+                              style: AppTheme.heading3.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
                   SizedBox(height: 18.h),

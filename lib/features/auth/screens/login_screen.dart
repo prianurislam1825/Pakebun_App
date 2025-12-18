@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pakebun_app/common/theme/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pakebun_app/core/services/auth_service.dart';
 import 'package:pakebun_app/features/auth/controllers/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,14 +16,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _googleLoading = false;
+  bool _isLoading = false;
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString('user_email');
-    final savedPassword = prefs.getString('user_password');
+
     if (!mounted) return;
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -31,14 +31,25 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
-    if (email == savedEmail && password == savedPassword) {
-      if (!mounted) return;
-      context.go('/dashboard');
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email atau kata sandi salah!')),
-      );
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.signIn(email: email, password: password);
+
+      if (mounted) {
+        context.go('/garden');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Login gagal: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -152,14 +163,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         padding: EdgeInsets.symmetric(vertical: 10.h),
                       ),
-                      onPressed: _login,
-                      child: Text(
-                        'Masuk',
-                        style: AppTheme.heading3.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      onPressed: _isLoading ? null : _login,
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20.h,
+                              width: 20.h,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Masuk',
+                              style: AppTheme.heading3.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
                   SizedBox(height: 18.h),

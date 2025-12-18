@@ -48,6 +48,7 @@ dependencies:
   google_sign_in: ^6.2.2
   url_launcher: ^6.3.0
   mqtt_client: ^9.6.2
+  supabase_flutter: ^2.9.0
   intl: ^0.18.1
 
 dev_dependencies:

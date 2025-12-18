@@ -5,6 +5,8 @@ import 'package:pakebun_app/common/routes/app_router.dart';
 import 'package:pakebun_app/common/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pakebun_app/core/config/supabase_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,14 @@ Future<void> main() async {
       } else {
         debugPrint('Skipping Firebase init (SKIP_FIREBASE=true)');
       }
+
+      // Initialize Supabase
+      await Supabase.initialize(
+        url: SupabaseConfig.supabaseUrl,
+        anonKey: SupabaseConfig.supabaseAnonKey,
+      );
+      debugPrint('Supabase initialized successfully');
+
       runApp(const PakebunApp());
     },
     (error, stack) {
